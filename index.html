@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>zabbix api console</title>
+<meta charset="utf-8">
+<meta name="description" content="">
+<meta name="author" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="">
+<style>
+    textarea { resize: vertical; }
+    button {
+        font-size: 1.5em;
+        margin: 1em;
+        padding: 0 2em;
+    }
+    body > div > p { margin: 0.5em 1em; }
+    body > div > p > label { margin-right: 0.3em; }
+    body > div > p > input { margin-right: 1em; }
+    #url, #params { width: 50%; }
+    #response-json { width: 100%; }
+    .result {
+        margin-top: 1em;
+        border-top: solid 1px black;
+    }
+</style>
+</head>
+<body>
+    <h1>zabbix api console</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+            <label for="method">method:</label><input type="text" id="method">
+        </p>
+        <p>
+            <span>params:</span><br><textarea id="params" rows="10"></textarea>
+        </p>
+        <button id="get">get</button>
+        <div class="result">
+            <h3>json:</h3>
+            <textarea id="response-json" rows="20" readonly></textarea>
+        </div>
+    </div>
+</body>
+<script src="./index.js"></script>
+</html>
