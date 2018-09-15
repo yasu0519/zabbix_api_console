@@ -2,10 +2,10 @@
 
 
 
-    zabbix api console
-    index.js
+    api.js
 
 
+    
  */
 "use strict";
 
@@ -69,51 +69,3 @@ function requestZabbixAPI(url, user, password, method, params, successHandler, e
     xhr.setRequestHeader('Content-Type', "application/json-rpc");
     xhr.send(JSON.stringify(authJSONRPC(user, password)));
 }
-
-
-
-/*
-
-
-    main
-
-
-*/
-
-
-//  default input
-document.getElementById('url').value = "http://0.0.0.0/api_jsonrpc.php";
-document.getElementById('user').value = "Admin";
-document.getElementById('password').value = "zabbix";
-document.getElementById('method').value = "template.get";
-document.getElementById('params').value = JSON.stringify({
-    "output": "extend",
-    "filter": {
-        "host": [
-            "Template OS Linux",
-            "Template OS Windows"
-        ]
-    }
-});
-
-
-document.getElementById('get').addEventListener("click", function(){
-    requestZabbixAPI(
-        document.getElementById('url').value,
-        document.getElementById('user').value,
-        document.getElementById('password').value,
-        document.getElementById('method').value,
-        JSON.parse(document.getElementById('params').value),
-        /* successHandler */
-        function (response) {
-            document.getElementById('response-json').value = JSON.stringify(response);
-            console.log(response);
-        },
-        /* errorHandler */
-        function (response) {
-            //JSON.stringify(document.getElementById('response-table'));
-            document.getElementById('response-json').value = JSON.stringify(response);
-            console.log(response);
-        }
-    );
-}, false);
