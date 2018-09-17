@@ -10,38 +10,17 @@
 "use strict";
 
 
-
-function authJSONRPC(user, password) {
-    return {
-        "jsonrpc": "2.0",
-        "method": "user.login",
-        "params": {
-            "user": user,
-            "password": password
-        },
-        "id": 1
-    };
-}
-
-
-
 function requestZabbixAPI(url, user, password, method, params, successHandler, errorHandler) {
     var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader('Content-Type', "application/json-rpc");
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
-                var respons = JSON.parse(xhr.responseText);
-                
-                let request = {
-                    "jsonrpc": "2.0",
-                    "method": method,
-                    "params": params,
-                    "id": respons.id + 1,
-                    "auth": respons.result
-                };
-
                 var x = new XMLHttpRequest();
+                x.open("POST", url, true);
+                x.setRequestHeader('Content-Type', "application/json-rpc");
 
                 x.onreadystatechange = function() {
                     if (x.readyState == 4) {
@@ -54,8 +33,14 @@ function requestZabbixAPI(url, user, password, method, params, successHandler, e
                     }
                 };
 
-                x.open("POST", url, true);
-                x.setRequestHeader('Content-Type', "application/json-rpc");
+                var respons = JSON.parse(xhr.responseText);
+                let request = {
+                    "jsonrpc": "2.0",
+                    "method": method,
+                    "params": params,
+                    "id": respons.id + 1,
+                    "auth": respons.result
+                };
                 x.send(JSON.stringify(request));
 
             } else {
@@ -65,7 +50,14 @@ function requestZabbixAPI(url, user, password, method, params, successHandler, e
         }
     };
 
-    xhr.open("POST", url, true);
-    xhr.setRequestHeader('Content-Type', "application/json-rpc");
-    xhr.send(JSON.stringify(authJSONRPC(user, password)));
+    let request = {
+        "jsonrpc": "2.0",
+        "method": "user.login",
+        "params": {
+            "user": user,
+            "password": password
+        },
+        "id": 1
+    };
+    xhr.send(JSON.stringify(request));
 }
