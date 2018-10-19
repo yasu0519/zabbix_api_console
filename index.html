@@ -79,11 +79,8 @@
             "id": "*",
             "auth": "********"
         });
-        let responseHandler = function(response) {
-            document.getElementById('response').value = JSON.stringify(response);
-            console.log(response);
-        };
-        requestZabbixAPI(url, user, password, method, params, /* successHandler */responseHandler, /* errorHandler */responseHandler);
+        document.getElementById('response').value = "..............";
+        document.getElementById('response').value = JSON.stringify(requestZabbixAPI(url, user, password, method, params));
     }, false);
 </script>
 </html>
