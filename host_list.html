@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>zabbix host list</title>
+<meta charset="utf-8">
+<meta name="description" content="">
+<meta name="author" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="">
+<style>
+    textarea { resize: vertical; }
+    button {
+        font-size: 1.5em;
+        margin: 1em;
+        padding: 0 2em;
+    }
+    body > div > p { margin: 0.5em 1em; }
+    body > div > p > label { margin-right: 0.3em; }
+    body > div > p > input { margin-right: 1em; }
+    #url, #params { width: 50%; }
+    #request, #response { width: 100%; }
+    .result {
+        margin-top: 1em;
+        border-top: solid 1px black;
+    }
+    .result > div { margin-top: 1em; }
+    table { border-collapse: collapse; }
+    table, th, td { border: solid 1px black; }
+</style>
+</head>
+<body>
+    <h1>zabbix host list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="get">get</button>
+        <div id="result">
+        </div>
+    </div>
+</body>
+<script src="./api.js"></script>
+
+<script>
+    //  API const
+    var METHOD = "host.get";
+    var PARAMS = {
+        "output": ["hostid", "host", "status"],
+        "selectGroups": "extend",
+        "selectInterfaces": ["interfaceid", "ip"]
+    };
+    var STATUS = ["Enabled", "Disabled"];
+    /* 
+    // ex. results
+    [
+        {
+            "hostid": "9999",
+            "host": "host name",
+            "status": "0",
+            "groups": [
+                {
+                    "groupid": "1",
+                    "name": "GroupName",
+                    "internal": "0",
+                    "flags": "0"
+                }
+            ],
+            "interfaces": [
+                {
+                    "interfaceid": "1",
+                    "ip": "127.0.0.1"
+                }
+            ]
+        }, ...
+    ]
+    */
+
+    //  default input
+    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
+    document.getElementById('user').value = "Admin";
+    document.getElementById('password').value = "zabbix";
+
+    //  make table
+    function makeTable(resultsList) {
+        //  make tag
+        var make = function(tag,value){
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2){
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = make('table');
+        let $caption = make('caption', resultsList.length + " hosts, " + (new Date()).toString());
+        let $thead = make('thead', "<tr><th>status</th><th>host</th><th>ip</th><th>groups</th></tr>");
+        //  make tbody
+        var $tbody = make('tbody');
+        resultsList.forEach(function(r){   
+            let $status = make('td', STATUS[Number(r.status)]);
+            let $host = make('td', r.host);
+            // ip's
+            var $ip = make('td');
+            r.interfaces.forEach(function(i){
+                let $div = make('div', i.ip);
+                $ip.appendChild($div);
+            });
+            // groups
+            var $groups = make('td');
+            r.groups.forEach(function (g) {
+                let $div = make('div', g.name);
+                $groups.appendChild($div);
+            });
+            // table row
+            let $tr = make('tr'); 
+            [$status, $host, $ip, $groups].forEach(function(e){
+                $tr.appendChild(e);
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function(e){
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+    document.getElementById('get').addEventListener("click", function () {
+        let url = document.getElementById('url').value;
+        let user = document.getElementById('user').value;
+        let password = document.getElementById('password').value;
+        let $result = document.getElementById('result');
+        $result.innerHTML = "";
+        let $table = makeTable(requestZabbixAPI(url, user, password, METHOD, PARAMS));
+        $result.appendChild($table);
+    }, false);
+</script>
+</html>

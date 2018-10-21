@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>zabbix item list</title>
+<meta charset="utf-8">
+<meta name="description" content="">
+<meta name="author" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="">
+<style>
+    textarea { resize: vertical; }
+    button {
+        font-size: 1.5em;
+        margin: 1em;
+        padding: 0 2em;
+    }
+    body > div > p { margin: 0.5em 1em; }
+    body > div > p > label { margin-right: 0.3em; }
+    body > div > p > input { margin-right: 1em; }
+    #url, #params { width: 50%; }
+    #request, #response { width: 100%; }
+    .result {
+        margin-top: 1em;
+        border-top: solid 1px black;
+    }
+    .result > div { margin-top: 1em; }
+    table { border-collapse: collapse; }
+    table, th, td { border: solid 1px black; }
+</style>
+</head>
+<body>
+    <h1>zabbix item list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="get">get</button>
+        <div id="result">
+        </div>
+    </div>
+</body>
+<script src="./api.js"></script>
+
+<script>
+    //  API const 
+    var METHOD = "item.get";
+    var PARAMS = {
+        "output": ["itemid", "key_", "name", "type", "status"]
+    };
+    var STATUS = ["Enabled", "Disabled"];
+    var TYPE = [
+            "Zabbix agent",
+            "SNMPv1 agent",
+            "Zabbix trapper",
+            "simple check",
+            "SNMPv2 agent",
+            "Zabbix internal",
+            "SNMPv3 agent",
+            "Zabbix agent (active)",
+            "Zabbix aggregate",
+            "web item",
+            "external check",
+            "database monitor",
+            "IPMI agent",
+            "SSH agent",
+            "TELNET agent",
+            "calculated",
+            "JMX agent",
+            "SNMP trap",
+            "Dependent item"
+        ];
+    /*
+        TYPE
+        0 - Zabbix agent;
+        1 - SNMPv1 agent;
+        2 - Zabbix trapper;
+        3 - simple check;
+        4 - SNMPv2 agent;
+        5 - Zabbix internal;
+        6 - SNMPv3 agent;
+        7 - Zabbix agent (active);
+        8 - Zabbix aggregate;
+        9 - web item;
+        10 - external check;
+        11 - database monitor;
+        12 - IPMI agent;
+        13 - SSH agent;
+        14 - TELNET agent;
+        15 - calculated;
+        16 - JMX agent;
+        17 - SNMP trap;
+        18 - Dependent item
+    */
+    /* 
+    // ex. results
+    [
+        {
+            "itemid": "10009",
+            "key_": "proc.num[]",
+            "name": "Number of processes",
+            "type": "0",
+            "status": "0"
+        }, ...
+    ]
+    */
+
+    //  default input
+    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
+    document.getElementById('user').value = "Admin";
+    document.getElementById('password').value = "zabbix";
+
+    //  make table
+    function makeTable(resultsList) {
+        //  make tag
+        var make = function(tag, value){
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2){
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = make('table');
+        let $caption = make('caption', resultsList.length + " items, " + (new Date()).toString());
+        let $thead = make('thead', "<tr><th>status</th><th>key</th><th>name</th><th>type</th></tr>");
+        //  make tbody
+        var $tbody = make('tbody');
+        resultsList.forEach(function(r){   
+            let $status = make('td', STATUS[Number(r.status)]);
+            let $key = make('td', r.key_);
+            let $name = make('td', r.name);
+            let $type = make('td', TYPE[Number(r.type)]);
+            // table row
+            let $tr = make('tr'); 
+            [$status, $key, $name, $type].forEach(function(e){
+                $tr.appendChild(e);
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function(e){
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+    document.getElementById('get').addEventListener("click", function () {
+        let url = document.getElementById('url').value;
+        let user = document.getElementById('user').value;
+        let password = document.getElementById('password').value;
+        let $result = document.getElementById('result');
+        $result.innerHTML = "";
+        let $table = makeTable(requestZabbixAPI(url, user, password, METHOD, PARAMS));
+        $result.appendChild($table);
+    }, false);
+</script>
+</html>
