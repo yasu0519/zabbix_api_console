@@ -26,7 +26,9 @@
     }
     .result > div { margin-top: 1em; }
     table { border-collapse: collapse; }
-    table, th, td { border: solid 1px black; }
+    table, th, td { border: solid 1px #555; }
+    th { color: #fff; background-color: #336699; }
+    tr:nth-child(even) { background-color: #dfffff; }
 </style>
 </head>
 <body>
@@ -45,11 +47,7 @@
 <script src="./api.js"></script>
 
 <script>
-    //  API const 
-    var METHOD = "item.get";
-    var PARAMS = {
-        "output": ["itemid", "key_", "name", "type", "status"]
-    };
+    //  const 
     var STATUS = ["Enabled", "Disabled"];
     var TYPE = [
             "Zabbix agent",
@@ -72,40 +70,6 @@
             "SNMP trap",
             "Dependent item"
         ];
-    /*
-        TYPE
-        0 - Zabbix agent;
-        1 - SNMPv1 agent;
-        2 - Zabbix trapper;
-        3 - simple check;
-        4 - SNMPv2 agent;
-        5 - Zabbix internal;
-        6 - SNMPv3 agent;
-        7 - Zabbix agent (active);
-        8 - Zabbix aggregate;
-        9 - web item;
-        10 - external check;
-        11 - database monitor;
-        12 - IPMI agent;
-        13 - SSH agent;
-        14 - TELNET agent;
-        15 - calculated;
-        16 - JMX agent;
-        17 - SNMP trap;
-        18 - Dependent item
-    */
-    /* 
-    // ex. results
-    [
-        {
-            "itemid": "10009",
-            "key_": "proc.num[]",
-            "name": "Number of processes",
-            "type": "0",
-            "status": "0"
-        }, ...
-    ]
-    */
 
     //  default input
     document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
@@ -113,29 +77,79 @@
     document.getElementById('password').value = "zabbix";
 
     //  make table
-    function makeTable(resultsList) {
-        //  make tag
-        var make = function(tag, value){
+    function makeTable(url, user, password) {
+        let template_params = {
+            "output": ["templateid", "name"],
+            "with_items": true,
+            "selectItems": ["itemid"]
+        };
+        let item_params = {
+            "output": [
+                "itemid",
+                "name",     // item name
+                "type",
+                "key_",
+                "delay",    // interval
+                "history",
+                "trends",
+                "status"
+            ],
+            "selectApplications": ["applicationid", "name"]
+        };
+
+        //  templates
+        var templates = requestZabbixAPI(url, user, password, "template.get", template_params);
+
+        //  items
+        var arr = [];
+        templates.forEach(function(v){
+            arr = arr.concat( v.items.map(function(o){ return o.itemid; }) );
+        });
+        item_params['itemids'] = arr;
+        var items = requestZabbixAPI(url, user, password, "item.get", item_params);
+        
+        //  make table
+        arr = [];
+        templates.forEach(function (t) {
+            t.items.forEach(function(templateItem){
+                var item = items.find(function (i) {
+                    return (templateItem.itemid == i.itemid);
+                });
+                arr[arr.length] = {
+                    'template': t.name,
+                    'item name': item.name,
+                    'type': TYPE[Number(item.type)],
+                    'key': item.key_,
+                    'interval': item.delay,
+                    'history': item.history,
+                    'trends': item.trends,
+                    'application': item.applications.map(function (a) { return a.name; }).join(', '),
+                    'status': STATUS[Number(item.status)]
+                };
+            });
+        });
+        return arr;
+    }
+
+    //  markup table
+    function markupTable(arr) {
+        //  markup
+        var $ = function(tag, value){
             let $tag = document.createElement(tag);
             if (arguments.length >= 2){
                 $tag.innerHTML = value;
             }
             return $tag;
         };
-        var $table = make('table');
-        let $caption = make('caption', resultsList.length + " items, " + (new Date()).toString());
-        let $thead = make('thead', "<tr><th>status</th><th>key</th><th>name</th><th>type</th></tr>");
-        //  make tbody
-        var $tbody = make('tbody');
-        resultsList.forEach(function(r){   
-            let $status = make('td', STATUS[Number(r.status)]);
-            let $key = make('td', r.key_);
-            let $name = make('td', r.name);
-            let $type = make('td', TYPE[Number(r.type)]);
-            // table row
-            let $tr = make('tr'); 
-            [$status, $key, $name, $type].forEach(function(e){
-                $tr.appendChild(e);
+        var $table = $('table');
+        let $caption = $('caption', arr.length + " items, " + (new Date()).toString());
+        let $thead = $('thead', '<tr><th>' + Object.keys(arr[0]).join('</th><th>') + '</th></tr>');
+        //  markup tbody
+        var $tbody = $('tbody');
+        arr.forEach(function(r){
+            var $tr = $('tr');
+            Object.values(r).forEach(function(v){
+                $tr.appendChild($('td', v));
             });
             $tbody.appendChild($tr);
         });
@@ -151,7 +165,7 @@
         let password = document.getElementById('password').value;
         let $result = document.getElementById('result');
         $result.innerHTML = "";
-        let $table = makeTable(requestZabbixAPI(url, user, password, METHOD, PARAMS));
+        let $table = markupTable(makeTable(url, user, password));
         $result.appendChild($table);
     }, false);
 </script>
