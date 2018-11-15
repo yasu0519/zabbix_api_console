@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>zabbix item list</title>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <h1>zabbix item list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="get">get</button>
+        <div id="result">
+        </div>
+    </div>
+</body>
+<script src="./api.js"></script>
+
+<script>
+    //  const 
+    var STATUS = ["Enabled", "Disabled"];
+    var TYPE = [
+            "Zabbix agent",
+            "SNMPv1 agent",
+            "Zabbix trapper",
+            "simple check",
+            "SNMPv2 agent",
+            "Zabbix internal",
+            "SNMPv3 agent",
+            "Zabbix agent (active)",
+            "Zabbix aggregate",
+            "web item",
+            "external check",
+            "database monitor",
+            "IPMI agent",
+            "SSH agent",
+            "TELNET agent",
+            "calculated",
+            "JMX agent",
+            "SNMP trap",
+            "Dependent item"
+        ];
+
+    //  default input
+    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
+    document.getElementById('user').value = "Admin";
+    document.getElementById('password').value = "zabbix";
+
+    //  make table
+    function makeTable(url, user, password) {
+        let template_params = {
+            "output": ["templateid", "name"],
+            "with_items": true,
+            "selectItems": ["itemid"]
+        };
+        let item_params = {
+            "output": [
+                "itemid",
+                "name",     // item name
+                "type",
+                "key_",
+                "delay",    // interval
+                "history",
+                "trends",
+                "status"
+            ],
+            "selectApplications": ["applicationid", "name"],
+            "selectTriggers" : ["extend"]
+        };
+
+        //  templates
+        var templates = requestZabbixAPI(url, user, password, "template.get", template_params);
+
+        //  items
+        var arr = [];
+        templates.forEach(function(v){
+            arr = arr.concat( v.items.map(function(o){ return o.itemid; }) );
+        });
+        item_params['itemids'] = arr;
+        var items = requestZabbixAPI(url, user, password, "item.get", item_params);
+        
+        //  make table
+        arr = [];
+        items.forEach(function(item){
+            arr[arr.length] = {
+                'triggers': item.triggers.map(function (a) { return a.triggerid; }).join(', '),
+                'item name': item.name,
+                'type': TYPE[Number(item.type)],
+                'key': item.key_,
+                'interval': item.delay,
+                'history': item.history,
+                'trends': item.trends,
+                'application': item.applications.map(function (a) { return a.name; }).join(', '),
+                'status': STATUS[Number(item.status)]
+            };
+        });
+        return arr;
+    }
+
+    //  markup table
+    function markupTable(arr) {
+        //  markup
+        var $ = function(tag, value){
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2){
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = $('table');
+        let $caption = $('caption', arr.length + " items, " + (new Date()).toString());
+        let $thead = $('thead', '<tr><th>' + Object.keys(arr[0]).join('</th><th>') + '</th></tr>');
+        //  markup tbody
+        var $tbody = $('tbody');
+        arr.forEach(function(r){
+            var $tr = $('tr');
+            Object.values(r).forEach(function(v){
+                $tr.appendChild($('td', v));
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function(e){
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+    document.getElementById('get').addEventListener("click", function () {
+        let url = document.getElementById('url').value;
+        let user = document.getElementById('user').value;
+        let password = document.getElementById('password').value;
+        let $result = document.getElementById('result');
+        $result.innerHTML = "";
+        let $table = markupTable(makeTable(url, user, password));
+        $result.appendChild($table);
+    }, false);
+</script>
+</html>
