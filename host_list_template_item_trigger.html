@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>zabbix host list</title>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <h1>zabbix host list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="get">get</button>
+        <div id="result">
+        </div>
+    </div>
+</body>
+<script src="./api.js"></script>
+
+<script>
+    // const
+    var STATUS = ["Enabled", "Disabled"];
+    /* 
+    // ex. results
+    [
+        {
+            "hostid": "9999",
+            "host": "host name",
+            "status": "0",
+            "groups": [
+                {
+                    "groupid": "1",
+                    "name": "GroupName",
+                    "internal": "0",
+                    "flags": "0"
+                }
+            ],
+            "interfaces": [
+                {
+                    "interfaceid": "1",
+                    "ip": "127.0.0.1"
+                }
+            ]
+        }, ...
+    ]
+    */
+
+
+    //  default input
+    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
+    document.getElementById('user').value = "Admin";
+    document.getElementById('password').value = "zabbix";
+
+
+    //  make table
+    function makeTable(url, user, password) {
+        var host_params = {
+            "output": ["hostid", "host", "description", "status"],
+            "selectInterfaces": ["interfaceid", "ip"],
+            "selectMacros": ["hostmacroid", "macro", "value"],
+            "selectGroups": ["groupid", "name"],
+            "selectParentTemplates": ["templateid", "host", "name"], // use "name"
+            "selectItems":["itemid"],
+            "selectTriggers":["triggerid"]
+        };
+
+        //  hosts
+        var hosts = requestZabbixAPI(url, user, password, "host.get", host_params);
+
+        //  make table
+        var arr = [];
+        hosts.forEach(function (h) {
+            arr[arr.length] = {
+                'host': h.host,
+                'interfaces': h.interfaces.map(function (a) { return a.ip; }).join(', '),
+                'macros': h.macros.map(function (a) { return a.macro + "=" + a.value; }).join(', '),
+                'description': h.description,
+                'groups': h.groups.map(function (a) { return a.name; }).join(', '),
+                'templates': h.parentTemplates.map(function (a) { return a.name; }).join(', '),
+                'status': STATUS[Number(h.status)]
+            };
+        });
+        return arr;
+    }
+
+
+    //  markup table
+    function markupTable(arr) {
+        //  markup
+        var $ = function (tag, value) {
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2) {
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = $('table');
+        let $caption = $('caption', arr.length + " items, " + (new Date()).toString());
+        let $thead = $('thead', '<tr><th>' + Object.keys(arr[0]).join('</th><th>') + '</th></tr>');
+        //  markup tbody
+        var $tbody = $('tbody');
+        arr.forEach(function (r) {
+            var $tr = $('tr');
+            Object.values(r).forEach(function (v) {
+                $tr.appendChild($('td', v));
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function (e) {
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+    document.getElementById('get').addEventListener("click", function () {
+        let url = document.getElementById('url').value;
+        let user = document.getElementById('user').value;
+        let password = document.getElementById('password').value;
+        let $result = document.getElementById('result');
+        $result.innerHTML = "";
+        let $table = markupTable(makeTable(url, user, password));
+        $result.appendChild($table);
+    }, false);
+</script>
+</html>
