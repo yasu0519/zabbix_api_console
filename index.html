@@ -29,10 +29,15 @@
             <textarea id="response" rows="15" readonly></textarea>
         </div>
     </div>
+    <hr>
+    <footer><a target="_blank" href="https://www.zabbix.com/documentation/current/manual/api">zabbix api manual</footer>
 </body>
+<script src="./es6-promise.auto.min.js"></script>
 <script src="./api.js"></script>
 <script>
-    //  default input
+    /*
+        default input
+    */
     document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
     document.getElementById('user').value = "Admin";
     document.getElementById('password').value = "zabbix";
@@ -46,14 +51,19 @@
             ]
         }
     });
-
-
+    /*
+        click Event
+    */
     document.getElementById('get').addEventListener("click", function () {
+
+        //  input values
         let url = document.getElementById('url').value;
         let user = document.getElementById('user').value;
         let password = document.getElementById('password').value;
         var method = document.getElementById('method').value;
         var params = JSON.parse(document.getElementById('params').value);
+
+        //  view request
         document.getElementById('request').value = JSON.stringify({
             "jsonrpc": "2.0",
             "method": method,
@@ -61,8 +71,17 @@
             "id": "*",
             "auth": "********"
         });
-        document.getElementById('response').value = "..............";
-        document.getElementById('response').value = JSON.stringify(requestZabbixAPI(url, user, password, method, params));
+        var $response = document.getElementById('response');
+        $response.value = "..............";
+
+        // get ZabbixAPI result JSON
+        getZabbixAPI(url, user, password, method, params)
+            .then(function (response) {
+                $response.value = JSON.stringify(response);
+            })
+            .catch(function (error) {
+                $response.value = error.toString();
+            });
     }, false);
 </script>
 </html>

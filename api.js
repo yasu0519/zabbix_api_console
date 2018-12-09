@@ -21,11 +21,11 @@ function requestZabbixAPI(url, method, params, auth) {
         "jsonrpc": "2.0",
         "method": method,
         "params": params,
-        "id": 1,
-        "auth": null
+        "id": 1
+        //"auth": null
     };
     if (auth) {
-        request.auth = auth;
+        request['auth'] = auth;
         request.id = 2;
     }
     //  Wrap XMLHttpRequest with 'Promise'
@@ -34,9 +34,10 @@ function requestZabbixAPI(url, method, params, auth) {
         xhr.open('POST', url);
         xhr.setRequestHeader('Content-Type', "application/json-rpc");
         xhr.onload = function () {
-            if (request.status === 200) {
+            if (xhr.status === 200) {
                 resolve(JSON.parse(xhr.responseText).result);
             } else {
+                console.log(xhr.statusText);
                 reject(Error('error code: ' + xhr.statusText));
             }
         };
