@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>zabbix host list</title>
+    <title>zabbix trigger list</title>
     <meta charset="utf-8">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="./index.css">
 </head>
 <body>
-    <h1>zabbix host list</h1>
+    <h1>zabbix trigger list</h1>
     <div>
         <p><label for="url">api url:</label><input type="text" id="url"></p>
         <p>
@@ -25,27 +25,30 @@
 <script src="./api.js"></script>
 
 <script>
-    // const
+    //  const
+    var SEVERITY = [    /* priority */
+        "default",
+        "information",
+        "warning",
+        "average",
+        "high",
+        "disaster"
+    ];
     var STATUS = ["Enabled", "Disabled"];
     /* 
     // ex. results
     [
         {
-            "hostid": "9999",
-            "host": "host name",
+            "triggerid": "10010",
+            "description": "Processor load is too high on {HOST.NAME}",
+            "expression": "{13078}>5",
             "status": "0",
             "groups": [
                 {
-                    "groupid": "1",
-                    "name": "GroupName",
+                    "groupid": "99",
+                    "name": "Template Name",
                     "internal": "0",
                     "flags": "0"
-                }
-            ],
-            "interfaces": [
-                {
-                    "interfaceid": "1",
-                    "ip": "127.0.0.1"
                 }
             ]
         }, ...
@@ -61,28 +64,36 @@
 
     //  make table
     function makeTable(url, user, password) {
-        var host_params = {
-            "output": ["hostid", "host", "description", "status"],
-            "selectInterfaces": ["interfaceid", "ip"],
-            "selectMacros": ["hostmacroid", "macro", "value"],
-            "selectGroups": ["groupid", "name"],
-            "selectParentTemplates": ["templateid", "host", "name"] // use "name"
+        let template_params = {
+            "output": ["templateid", "name"],
+            "with_triggers": true,
+            "selectTriggers": ["triggerid"]
         };
+        let trigger_params = {
+            "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"],
+            "selectGroups": ["groupid", "name"]
+        };
+        //  templates
+        var templates = requestZabbixAPI(url, user, password, "template.get", template_params);
 
-        //  hosts
-        var hosts = requestZabbixAPI(url, user, password, "host.get", host_params);
+        //  triggers
+        var arr = [];
+        templates.forEach(function (v) {
+            arr = arr.concat(v.triggers.map(function (o) { return o.triggerid; }));
+        });
+        trigger_params['triggerids'] = arr;
+        var triggers = requestZabbixAPI(url, user, password, "trigger.get", trigger_params);
 
         //  make table
-        var arr = [];
-        hosts.forEach(function (h) {
+        arr = [];
+        triggers.forEach(function (trigger) {
             arr[arr.length] = {
-                'host': h.host,
-                'interfaces': h.interfaces.map(function (a) { return a.ip; }).join(', '),
-                'macros': h.macros.map(function (a) { return a.macro + "=" + a.value; }).join(', '),
-                'description': h.description,
-                'groups': h.groups.map(function (a) { return a.name; }).join(', '),
-                'templates': h.parentTemplates.map(function (a) { return a.name; }).join(', '),
-                'status': STATUS[Number(h.status)]
+                'triggerid': trigger.triggerid,
+                'name': trigger.description,
+                'severity': SEVERITY[Number(trigger.priority)],
+                'problem expression': trigger.expression,
+                'recovery expression': trigger.recovery_expression,
+                'status': STATUS[Number(trigger.status)]
             };
         });
         return arr;
@@ -116,6 +127,7 @@
         });
         return $table;
     }
+
 
     document.getElementById('get').addEventListener("click", function () {
         let url = document.getElementById('url').value;
