@@ -75,13 +75,9 @@
         $response.value = "..............";
 
         // get ZabbixAPI result JSON
-        getZabbixAPI(url, user, password, method, params)
-            .then(function (response) {
-                $response.value = JSON.stringify(response);
-            })
-            .catch(function (error) {
-                $response.value = error.toString();
-            });
+        //console.log(getZabbixAPI(url, user, password, method, params));
+        $response.value = JSON.stringify(getZabbixAPI(url, user, password, method, params));
+
     }, false);
 </script>
 </html>

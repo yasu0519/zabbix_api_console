@@ -9,7 +9,6 @@
  */
 "use strict";
 
-
 /*
 
     request ZabbixAPI
@@ -37,12 +36,27 @@ function requestZabbixAPI(url, method, params, auth) {
             if (xhr.status === 200) {
                 resolve(JSON.parse(xhr.responseText).result);
             } else {
-                console.log(xhr.statusText);
-                reject(Error('error code: ' + xhr.statusText));
+                reject({
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": xhr.status,
+                        "message": xhr.statusText,
+                        "data": "XMLHttpRequest error."
+                    },
+                    "id": request.id
+                });
             }
         };
         xhr.onerror = function () {
-           reject(Error('network error'));
+            reject({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": xhr.status,
+                    "message": "An error occurred during the transaction",
+                    "data": "XMLHttpRequest error."
+                },
+                "id": request.id
+            });
         };
         xhr.send(JSON.stringify(request));
     });
@@ -54,13 +68,16 @@ function requestZabbixAPI(url, method, params, auth) {
 
 */
 function getZabbixAPI(url, user, password, method, params) {
-    return new Promise(function (resolve, reject) {
-        requestZabbixAPI(url, "user.login", { "user": user, "password": password }, false)
-            .then(function (result) {
-                resolve(requestZabbixAPI(url, method, params, result));
-            })
-            .catch(function (error) {
-                reject(error);
-            });
-    });
+    return requestZabbixAPI(url, "user.login", { "user": user, "password": password }, false)
+        .then(function (auth) {
+            return requestZabbixAPI(url, method, params, auth);
+        })
+        .then(function(result){
+            console.log(result);
+            return result;
+        })
+        .catch(function (err) {
+            console.log(err);
+            return err;
+        });
 }
