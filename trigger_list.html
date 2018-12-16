@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>zabbix trigger list</title>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <h1>zabbix trigger list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="get">get</button>
+        <div id="result">
+        </div>
+    </div>
+    <hr>
+    <footer><a target="_blank" href="https://www.zabbix.com/documentation/current/manual/api">zabbix api manual</footer>
+</body>
+
+<script src="./es6-promise.auto.min.js"></script>
+<script src="./api.js"></script>
+<script>
+    //  const
+    var SEVERITY = [    /* priority */
+        "default",
+        "information",
+        "warning",
+        "average",
+        "high",
+        "disaster"
+    ];
+    var STATUS = ["Enabled", "Disabled"];
+    /* 
+    // ex. results
+    [
+        {
+            "triggerid": "10010",
+            "description": "Processor load is too high on {HOST.NAME}",
+            "expression": "{13078}>5",
+            "status": "0",
+            "groups": [
+                {
+                    "groupid": "99",
+                    "name": "Template Name",
+                    "internal": "0",
+                    "flags": "0"
+                }
+            ]
+        }, ...
+    ]
+    */
+
+
+    //  default input
+    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
+    document.getElementById('user').value = "Admin";
+    document.getElementById('password').value = "zabbix";
+
+
+    //  make table
+    function makeTable(url, user, password) {
+        let template_params = {
+            "output": ["templateid", "name"],
+            "with_triggers": true,
+            "selectTriggers": ["triggerid"]
+        };
+        let trigger_params = {
+            "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"],
+            "selectGroups": ["groupid", "name"]
+        };
+        //  templates
+        var templates = requestZabbixAPI(url, user, password, "template.get", template_params);
+
+        //  triggers
+        var arr = [];
+        templates.forEach(function (v) {
+            arr = arr.concat(v.triggers.map(function (o) { return o.triggerid; }));
+        });
+        trigger_params['triggerids'] = arr;
+        var triggers = requestZabbixAPI(url, user, password, "trigger.get", trigger_params);
+
+        //  make table
+        arr = [];
+        templates.forEach(function (t) {
+            t.triggers.forEach(function (tr) {
+                var trigger = triggers.find(function (i) {
+                    return (tr.triggerid == i.triggerid);
+                });
+                arr[arr.length] = {
+                    'template': t.name,
+                    'name': trigger.description,
+                    'severity': SEVERITY[Number(trigger.priority)],
+                    'problem expression': trigger.expression,
+                    'recovery expression': trigger.recovery_expression,
+                    'status': STATUS[Number(trigger.status)]
+                };
+            });
+        });
+        return arr;
+    }
+
+
+    //  markup table
+    function markupTable(arr) {
+        //  markup
+        var $ = function (tag, value) {
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2) {
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = $('table');
+        let $caption = $('caption', arr.length + " items, " + (new Date()).toString());
+        let $thead = $('thead', '<tr><th>' + Object.keys(arr[0]).join('</th><th>') + '</th></tr>');
+        //  markup tbody
+        var $tbody = $('tbody');
+        arr.forEach(function (r) {
+            var $tr = $('tr');
+            Object.values(r).forEach(function (v) {
+                $tr.appendChild($('td', v));
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function (e) {
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+
+    document.getElementById('get').addEventListener("click", function () {
+        let url = document.getElementById('url').value;
+        let user = document.getElementById('user').value;
+        let password = document.getElementById('password').value;
+        let $result = document.getElementById('result');
+        $result.innerHTML = "";
+        let $table = markupTable(makeTable(url, user, password));
+        $result.appendChild($table);
+    }, false);
+</script>
+</html>
