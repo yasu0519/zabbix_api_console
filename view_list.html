@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>zabbix view list</title>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <h1>zabbix view list</h1>
+    <div>
+        <p><label for="url">api url:</label><input type="text" id="url"></p>
+        <p>
+            <label for="user">user:</label><input type="text" id="user">
+            <label for="password">password:</label><input type="password" id="password">
+        </p>
+        <button id="hostgroups">hostgroups</button><button id="hosts">hosts</button><button id="templates">templates</button><button id="items">items</button><button id="triggers">triggers</button>
+        <hr>
+        <div id="result"></div>
+    </div>
+    <hr>
+    <footer><a target="_blank" href="https://www.zabbix.com/documentation/current/manual/api">zabbix api manual</footer>
+</body>
+
+<script src="./es6-promise.auto.min.js"></script>
+<script src="./api.js"></script>
+<script>
+    /*-------------------------------------------------- 
+
+        constants
+
+    */
+    var DEFAULT_URL = "http://127.0.0.1/api_jsonrpc.php";
+    var DEFAULT_USER = "Admin";
+    var DEFAULT_PASSWORD = "zabbix";
+
+    //  zabbix api
+    var STATUS = ["Enabled", "Disabled"];
+    var GROUP_FLAGS = [
+        "plain host group",
+        "",
+        "",
+        "",
+        "discovered host group"
+    ];
+    var GROUP_INTERNAL = [
+        "not internal",
+        "internal"
+    ];
+    var ITEM_TYPE = [
+            "Zabbix agent",
+            "SNMPv1 agent",
+            "Zabbix trapper",
+            "simple check",
+            "SNMPv2 agent",
+            "Zabbix internal",
+            "SNMPv3 agent",
+            "Zabbix agent (active)",
+            "Zabbix aggregate",
+            "web item",
+            "external check",
+            "database monitor",
+            "IPMI agent",
+            "SSH agent",
+            "TELNET agent",
+            "calculated",
+            "JMX agent",
+            "SNMP trap",
+            "Dependent item"
+    ];
+    var TRIGGER_SEVERITY = [    /* priority */
+        "default",
+        "information",
+        "warning",
+        "average",
+        "high",
+        "disaster"
+    ];
+
+    /*-------------------------------------------------- 
+
+        init
+
+    */
+    //  input elements
+    var $url = document.getElementById('url');
+    var $user = document.getElementById('user');
+    var $password = document.getElementById('password');
+    var $result = document.getElementById('result');
+
+    //  default input
+    $url.value = DEFAULT_URL;
+    $user.value = DEFAULT_USER;
+    $password.value = DEFAULT_PASSWORD;
+
+    /*-------------------------------------------------- 
+
+        common functions
+
+    */
+    /*
+        markup table
+    */
+    function markupTable(arr) {
+        //  markup
+        var $ = function(tag, value){
+            let $tag = document.createElement(tag);
+            if (arguments.length >= 2){
+                $tag.innerHTML = value;
+            }
+            return $tag;
+        };
+        var $table = $('table');
+        let $caption = $('caption', arr.length + " items, " + (new Date()).toString());
+        let $thead = $('thead', '<tr><th>' + Object.keys(arr[0]).join('</th><th>') + '</th></tr>');
+        //  markup tbody
+        var $tbody = $('tbody');
+        arr.forEach(function(r){
+            var $tr = $('tr');
+            Object.values(r).forEach(function(v){
+                $tr.appendChild($('td', v));
+            });
+            $tbody.appendChild($tr);
+        });
+        [$caption, $thead, $tbody].forEach(function(e){
+            $table.appendChild(e);
+        });
+        return $table;
+    }
+
+    /*
+        view lists
+    */
+    function viewLists(name, method, params, toTable) {
+        document.getElementById(name).addEventListener("click", function () {
+            getZabbixAPI(url.value, $user.value, $password.value, method, params)
+                .then(function (response) {
+                    $result.innerHTML = "<h3>" + name + "</h3>";
+                    $result.appendChild( markupTable(toTable(response)) );
+                })
+                .catch(function (err) {
+                    $result.innerHTML = JSON.stringify(err, null, '\t');
+                });
+        }, false);
+    }
+
+    /*
+        join array
+    */
+    function joinArray(arr, key) {
+        return arr.map(function (a) { return a[key]; }).join(', ');
+    }
+
+    /*-------------------------------------------------- 
+
+        host groups
+
+    */
+    /*
+        to table
+    */
+    function hostgroupsToTable(groups) {
+        var arr = [];
+        groups.forEach(function(g){
+            arr[arr.length] = {
+                'groupid': g.groupid,
+                'name': g.name,
+                'flags': GROUP_FLAGS[Number(g.flags)],
+                'internal': GROUP_INTERNAL[Number(g.internal)],
+                'hosts': joinArray(g.hosts, "host"),
+                'templates': joinArray(g.templates, "host")
+            };
+        });
+        return arr;
+    }
+    /*
+        event
+    */
+    viewLists(
+        "hostgroups",
+        "hostgroup.get",
+        {
+            "output": ["groupid", "name", "flags", "internal"],
+            "selectHosts": ["hostid", "host"],
+            "selectTemplates": ["templateid", "host"]
+        },
+        hostgroupsToTable
+    );
+
+    /*-------------------------------------------------- 
+
+        hosts
+
+    */
+    /*
+        to table
+    */
+    function hostsToTable(hosts) {
+        var arr = [];
+        hosts.forEach(function(h){
+            arr[arr.length] = {
+                'hostid': h.hostid,
+                'host': h.host,
+                'interfaces': joinArray(h.interfaces, "ip"),
+                'macros': h.macros.map(function (a) { return a.macro + "=" + a.value; }).join(', '),
+                'description': h.description,
+                'groups': joinArray(h.groups, "name"),
+                'templates': joinArray(h.parentTemplates, "host"),
+                'items': joinArray(h.items, "itemid"),
+                'triggers': joinArray(h.triggers, "triggerid"),
+                'status': STATUS[Number(h.status)]
+            };
+        });
+        return arr;
+    }
+    /*
+        event
+    */
+    viewLists(
+        "hosts",
+        "host.get",
+        {
+            "output": ["hostid", "host", "description", "status"],
+            "selectInterfaces": ["interfaceid", "ip"],
+            "selectMacros": ["hostmacroid", "macro", "value"],
+            "selectGroups": ["groupid", "name"],
+            "selectParentTemplates": ["templateid", "host"],
+            "selectItems": ["itemid"],
+            "selectTriggers": ["triggerid"]
+        },
+        hostsToTable
+    );
+
+    /*-------------------------------------------------- 
+
+        templates
+
+    */
+    /*
+        to table
+    */
+    function templatesToTable(templates) {
+        var arr = [];
+        templates.forEach(function(t){
+            arr[arr.length] = {
+                'templateid': t.templateid,
+                'template name': t.host,
+                'visible name': t.name,
+                'description': t.description,
+                'groups': joinArray(t.groups, "name"),
+                'hosts': joinArray(t.hosts, "host"),
+                'templates': joinArray(t.templates, "host"),
+                'parentTemplates': joinArray(t.parentTemplates, "host"),
+                'items': joinArray(t.items, "itemid"),
+                'triggers': joinArray(t.triggers, "triggerid")
+            };
+        });
+        return arr;
+    }
+    /*
+        event
+    */
+    viewLists(
+        "templates",
+        "template.get",
+        {
+            "output": ["templateid", "host", "name", "description"],
+            "selectGroups": ["groupid", "name"],
+            "selectHosts": ["hostid", "host"],
+            "selectTemplates": ["templateid", "host"],
+            "selectParentTemplates": ["templateid", "host"],
+            "selectItems": ["itemid"],
+            "selectTriggers": ["triggerid"]
+        },
+        templatesToTable
+    );
+
+    /*-------------------------------------------------- 
+
+        items
+
+    */
+    /*
+        to table
+    */
+    function itemsToTable(items) {
+        var arr = [];
+        items.forEach(function(i){
+            arr[arr.length] = {
+                'itemid': i.itemid,
+                'item name': i.name,
+                'type': ITEM_TYPE[Number(i.type)],
+                'key': i.key_,
+                'interval': i.delay,
+                'history': i.history,
+                'trends': i.trends,
+                'application': joinArray(i.applications, "name"),
+                'status': STATUS[Number(i.status)]
+            };
+        });
+        return arr;
+    }
+    /*
+        event
+    */
+    viewLists(
+        "items",
+        "item.get",
+        {
+            "output": [ "itemid", "name", "type", "key_", "delay", "history", "trends", "status" ],
+            "selectApplications": ["applicationid", "name"]
+        },
+        itemsToTable
+    );
+
+    /*-------------------------------------------------- 
+
+        trigger
+
+    */
+    /*
+        to table
+    */
+    function triggersToTable(triggers) {
+        var arr = [];
+        triggers.forEach(function(t){
+            arr[arr.length] = {
+                'triggerid': t.triggerid,
+                'name': t.description,
+                'severity': TRIGGER_SEVERITY[Number(t.priority)],
+                'problem expression': t.expression,
+                'recovery expression': t.recovery_expression,
+                'status': STATUS[Number(t.status)]
+            };
+        });
+        return arr;
+    }
+    /*
+        event
+    */
+    viewLists(
+        "triggers",
+        "trigger.get",
+        {
+            "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"]
+        },
+        triggersToTable
+    );
+</script>
+</html>
