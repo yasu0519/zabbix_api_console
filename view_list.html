@@ -17,7 +17,10 @@
             <label for="user">user:</label><input type="text" id="user">
             <label for="password">password:</label><input type="password" id="password">
         </p>
-        <button id="hostgroups">hostgroups</button><button id="hosts">hosts</button><button id="templates">templates</button><button id="items">items</button><button id="triggers">triggers</button>
+        <button id="hostgroups">hostgroups</button><button id="hosts">hosts</button><button id="templates">templates</button>
+        <button id="items">items</button><button id="triggers">triggers</button>
+        <button id="items_of_template">items of template</button><button id="items_of_host">items of host</button>
+        <button id="triggers_of_template">triggers of template</button><button id="triggers_of_host">triggers of host</button>
         <hr>
         <div id="result"></div>
     </div>
@@ -139,7 +142,7 @@
             getZabbixAPI(url.value, $user.value, $password.value, method, params)
                 .then(function (response) {
                     $result.innerHTML = "<h3>" + name + "</h3>";
-                    $result.appendChild( markupTable(toTable(response)) );
+                    $result.appendChild( markupTable( toTable(response) ) );
                 })
                 .catch(function (err) {
                     $result.innerHTML = JSON.stringify(err, null, '\t');
@@ -159,26 +162,6 @@
         host groups
 
     */
-    /*
-        to table
-    */
-    function hostgroupsToTable(groups) {
-        var arr = [];
-        groups.forEach(function(g){
-            arr[arr.length] = {
-                'groupid': g.groupid,
-                'name': g.name,
-                'flags': GROUP_FLAGS[Number(g.flags)],
-                'internal': GROUP_INTERNAL[Number(g.internal)],
-                'hosts': joinArray(g.hosts, "host"),
-                'templates': joinArray(g.templates, "host")
-            };
-        });
-        return arr;
-    }
-    /*
-        event
-    */
     viewLists(
         "hostgroups",
         "hostgroup.get",
@@ -187,37 +170,24 @@
             "selectHosts": ["hostid", "host"],
             "selectTemplates": ["templateid", "host"]
         },
-        hostgroupsToTable
+        function (groups) {
+            return groups.map(function (g) {
+                return {
+                    'groupid': g.groupid,
+                    'name': g.name,
+                    'flags': GROUP_FLAGS[Number(g.flags)],
+                    'internal': GROUP_INTERNAL[Number(g.internal)],
+                    'hosts': joinArray(g.hosts, "host"),
+                    'templates': joinArray(g.templates, "host")
+                };
+            });
+        }
     );
 
     /*-------------------------------------------------- 
 
         hosts
 
-    */
-    /*
-        to table
-    */
-    function hostsToTable(hosts) {
-        var arr = [];
-        hosts.forEach(function(h){
-            arr[arr.length] = {
-                'hostid': h.hostid,
-                'host': h.host,
-                'interfaces': joinArray(h.interfaces, "ip"),
-                'macros': h.macros.map(function (a) { return a.macro + "=" + a.value; }).join(', '),
-                'description': h.description,
-                'groups': joinArray(h.groups, "name"),
-                'templates': joinArray(h.parentTemplates, "host"),
-                'items': joinArray(h.items, "itemid"),
-                'triggers': joinArray(h.triggers, "triggerid"),
-                'status': STATUS[Number(h.status)]
-            };
-        });
-        return arr;
-    }
-    /*
-        event
     */
     viewLists(
         "hosts",
@@ -231,37 +201,28 @@
             "selectItems": ["itemid"],
             "selectTriggers": ["triggerid"]
         },
-        hostsToTable
+        function (hosts) {
+            return hosts.map(function (h) {
+                return {
+                    'hostid': h.hostid,
+                    'host': h.host,
+                    'interfaces': joinArray(h.interfaces, "ip"),
+                    'macros': h.macros.map(function (a) { return a.macro + "=" + a.value; }).join(', '),
+                    'description': h.description,
+                    'groups': joinArray(h.groups, "name"),
+                    'templates': joinArray(h.parentTemplates, "host"),
+                    'items': joinArray(h.items, "itemid"),
+                    'triggers': joinArray(h.triggers, "triggerid"),
+                    'status': STATUS[Number(h.status)]
+                };
+            });
+        }
     );
 
     /*-------------------------------------------------- 
 
         templates
 
-    */
-    /*
-        to table
-    */
-    function templatesToTable(templates) {
-        var arr = [];
-        templates.forEach(function(t){
-            arr[arr.length] = {
-                'templateid': t.templateid,
-                'template name': t.host,
-                'visible name': t.name,
-                'description': t.description,
-                'groups': joinArray(t.groups, "name"),
-                'hosts': joinArray(t.hosts, "host"),
-                'templates': joinArray(t.templates, "host"),
-                'parentTemplates': joinArray(t.parentTemplates, "host"),
-                'items': joinArray(t.items, "itemid"),
-                'triggers': joinArray(t.triggers, "triggerid")
-            };
-        });
-        return arr;
-    }
-    /*
-        event
     */
     viewLists(
         "templates",
@@ -275,7 +236,22 @@
             "selectItems": ["itemid"],
             "selectTriggers": ["triggerid"]
         },
-        templatesToTable
+        function (templates) {
+            return templates.map(function (t) {
+                return {
+                    'templateid': t.templateid,
+                    'template name': t.host,
+                    'visible name': t.name,
+                    'description': t.description,
+                    'groups': joinArray(t.groups, "name"),
+                    'hosts': joinArray(t.hosts, "host"),
+                    'templates': joinArray(t.templates, "host"),
+                    'parentTemplates': joinArray(t.parentTemplates, "host"),
+                    'items': joinArray(t.items, "itemid"),
+                    'triggers': joinArray(t.triggers, "triggerid")
+                };
+            });
+        }
     );
 
     /*-------------------------------------------------- 
@@ -283,71 +259,193 @@
         items
 
     */
-    /*
-        to table
-    */
-    function itemsToTable(items) {
-        var arr = [];
-        items.forEach(function(i){
-            arr[arr.length] = {
-                'itemid': i.itemid,
-                'item name': i.name,
-                'type': ITEM_TYPE[Number(i.type)],
-                'key': i.key_,
-                'interval': i.delay,
-                'history': i.history,
-                'trends': i.trends,
-                'application': joinArray(i.applications, "name"),
-                'status': STATUS[Number(i.status)]
-            };
-        });
-        return arr;
-    }
-    /*
-        event
-    */
     viewLists(
         "items",
         "item.get",
         {
-            "output": [ "itemid", "name", "type", "key_", "delay", "history", "trends", "status" ],
+            "output": [ "itemid", "name", "type", "key_", "delay", "history", "trends", "hostid", "templateid", "status" ],
             "selectApplications": ["applicationid", "name"]
         },
-        itemsToTable
+        function (items) {
+            return items.map(function (i) {
+                return {
+                    'itemid': i.itemid,
+                    'item name': i.name,
+                    'type': ITEM_TYPE[Number(i.type)],
+                    'key': i.key_,
+                    'interval': i.delay,
+                    'history': i.history,
+                    'trends': i.trends,
+                    'application': joinArray(i.applications, "name"),
+                    'hostid': i.hostid,
+                    'templateid': i.templateid,
+                    'status': STATUS[Number(i.status)]
+                };
+            });
+        }
     );
 
     /*-------------------------------------------------- 
 
-        trigger
+        triggers
 
-    */
-    /*
-        to table
-    */
-    function triggersToTable(triggers) {
-        var arr = [];
-        triggers.forEach(function(t){
-            arr[arr.length] = {
-                'triggerid': t.triggerid,
-                'name': t.description,
-                'severity': TRIGGER_SEVERITY[Number(t.priority)],
-                'problem expression': t.expression,
-                'recovery expression': t.recovery_expression,
-                'status': STATUS[Number(t.status)]
-            };
-        });
-        return arr;
-    }
-    /*
-        event
     */
     viewLists(
         "triggers",
         "trigger.get",
         {
-            "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"]
+            "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "templateid", "status"],
+            "selectHosts": ["hostid"]
         },
-        triggersToTable
+        function (triggers) {
+            return triggers.map(function (t) {
+                return {
+                    'triggerid': t.triggerid,
+                    'name': t.description,
+                    'severity': TRIGGER_SEVERITY[Number(t.priority)],
+                    'problem expression': t.expression,
+                    'recovery expression': t.recovery_expression,
+                    'hostid': joinArray(t.hosts, "hostid"),
+                    'templateid': t.templateid,
+                    'status': STATUS[Number(t.status)]
+                };
+            });
+        }
+    );
+
+    /*-------------------------------------------------- 
+
+        items of template
+
+    */
+    viewLists(
+        "items_of_template",
+        "template.get",
+        {
+            "output": ["templateid", "host"],
+            "with_items": true,
+            "selectItems": ["itemid", "name", "type", "key_", "delay", "history", "trends", "status"]
+        },
+        function (templates) {
+            var arr = [];
+            templates.forEach(function (template) {
+                let a = template.items.map(function (i) {
+                    return {
+                        'template': template.host,
+                        'itemid': i.itemid,
+                        'item name': i.name,
+                        'type': ITEM_TYPE[Number(i.type)],
+                        'key': i.key_,
+                        'interval': i.delay,
+                        'history': i.history,
+                        'trends': i.trends,
+                        'status': STATUS[Number(i.status)]
+                    };
+                });
+                arr = arr.concat(a);
+            });
+            return arr;
+        }
+    );
+
+    /*-------------------------------------------------- 
+
+        items of host
+
+    */
+    viewLists(
+        "items_of_host",
+        "host.get",
+        {
+            "output": ["hostid", "host"],
+            "with_items": true,
+            "selectItems": ["itemid", "name", "type", "key_", "delay", "history", "trends", "status"]
+        },
+        function (hosts) {
+            var arr = [];
+            hosts.forEach(function (host) {
+                let a = host.items.map(function (i) {
+                    return {
+                        'host': host.host,
+                        'itemid': i.itemid,
+                        'item name': i.name,
+                        'type': ITEM_TYPE[Number(i.type)],
+                        'key': i.key_,
+                        'interval': i.delay,
+                        'history': i.history,
+                        'trends': i.trends,
+                        'status': STATUS[Number(i.status)]
+                    };
+                });
+                arr = arr.concat(a);
+            });
+            return arr;
+        }
+    );
+
+    /*-------------------------------------------------- 
+
+        triggers of template
+
+    */
+    viewLists(
+        "triggers_of_template",
+        "template.get",
+        {
+            "output": ["templateid", "host"],
+            "with_triggers": true,
+            "selectTriggers": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"]
+        },
+        function (templates) {
+            var arr = [];
+            templates.forEach(function (template) {
+                let a = template.triggers.map(function (t) {
+                    return {
+                        'template': template.host,
+                        'triggerid': t.triggerid,
+                        'name': t.description,
+                        'severity': TRIGGER_SEVERITY[Number(t.priority)],
+                        'problem expression': t.expression,
+                        'recovery expression': t.recovery_expression,
+                        'status': STATUS[Number(t.status)]
+                    };
+                });
+                arr = arr.concat(a);
+            });
+            return arr;
+        }
+    );
+    /*-------------------------------------------------- 
+
+        triggers of host
+
+    */
+    viewLists(
+        "triggers_of_host",
+        "host.get",
+        {
+            "output": ["hostid", "host"],
+            "with_triggers": true,
+            "selectTriggers": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"]
+        },
+        function (hosts) {
+            var arr = [];
+            hosts.forEach(function (host) {
+                let a = host.triggers.map(function (t) {
+                    return {
+                        'host': host.host,
+                        'triggerid': t.triggerid,
+                        'name': t.description,
+                        'severity': TRIGGER_SEVERITY[Number(t.priority)],
+                        'problem expression': t.expression,
+                        'recovery expression': t.recovery_expression,
+                        'status': STATUS[Number(t.status)]
+                    };
+                });
+                arr = arr.concat(a);
+            });
+            return arr;
+        }
     );
 </script>
 </html>
