@@ -1,48 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>zabbix api console</title>
-<meta charset="utf-8">
-<meta name="description" content="">
-<meta name="author" content="">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="./index.css">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>zabbix api console</title>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./css/normalize.min.css">
+    <link rel="stylesheet" href="./css/skeleton.css">
+    <link rel="stylesheet" href="./css/customize.css">
 </head>
 <body>
-    <h1>zabbix api console</h1>
-    <div>
-        <p><label for="url">api url:</label><input type="text" id="url"></p>
-        <p>
-            <label for="user">user:</label><input type="text" id="user">
-            <label for="password">password:</label><input type="password" id="password">
-            <label for="method">method:</label><input type="text" id="method">
-        </p>
-        <p>
-            <span>params:</span><br><textarea id="params" rows="10"></textarea>
-        </p>
-        <button id="get">get</button>
-        <div class="result">
-            <div>request:</div>
-            <textarea id="request" rows="2" readonly></textarea>
-            <div>response:</div>
-            <textarea id="response" rows="15" readonly></textarea>
+    <header class="u-full-width">
+        <div class="container">
+            <div class="row">
+                <h3 class="ten columns">zabbix API console</h3>
+                <div class="two columns"><a target="_blank" href="https://www.zabbix.com/documentation/current/manual/api">api document</a></div>
+            </div>
+            <div class="row">
+                <div id="menu-exec" class="six columns menu">exec</div>
+                <div id="menu-table" class="six columns menu">table</div>
+            </div>
         </div>
+    </header>
+    <form onsubmit="return false;">
+        <fieldset class="container">
+            <div class="row">
+                <label for="url">api url</label>
+                <input class="u-full-width" type="text" id="url">
+            </div>
+            <div class="row">
+                <div class="six columns">
+                    <label for="user">user</label><input class="u-full-width" type="text" id="user">
+                </div>
+                <div class="six columns">
+                    <label for="password">password</label>
+                    <input class="u-full-width" type="password" id="password">
+                </div>
+            </div>
+        </fieldset>
+        <fieldset id="exec-area" class="container">
+            <div class="row">
+                <label for="method">method</label>
+                <input class="u-full-width" type="text" id="method">
+            </div>
+            <div class="row">
+                <label for="params">params</label>
+                <textarea class="u-full-width" id="params" rows="10"></textarea>
+            </div>
+            <div class="row">
+                <button class="u-full-width" id="exec">exec</button>
+            </div>
+            <div class="row">
+                <label for="request">request</label>
+                <textarea class="u-full-width" id="request" rows="2" readonly></textarea>
+            </div>
+            <div class="row">
+                <label for="response">response</label>
+                <textarea class="u-full-width" id="response" rows="15" readonly></textarea>
+            </div>
+        </fieldset>
+        <fieldset id="table-buttons" class="container">
+            <div class="row">
+                <button id="hostgroups">hostgroups</button>
+                <button id="hosts">hosts</button>
+                <button id="templates">templates</button>
+                <button id="items">items</button>
+                <button id="triggers">triggers</button>
+            </div>
+            <div cass="row">
+                <button id="items_of_template">items of template</button>
+                <button id="items_of_host">items of host</button>
+                <button id="triggers_of_template">triggers of template</button>
+                <button id="triggers_of_host">triggers of host</button>
+            </div>
+            <div class="row">
+                <button id="hosts_of_templates_matrix">hosts of templates Matrix</button>
+                <button id="monitoring_matrix">monitoring matrix</button>
+                <button id="hosts_of_groups_matrix">hosts of groups matrix</button>
+                <button id="templates_of_groups_matrix">templates of groups matrix</button>
+            </div>
+        </fieldset>
+    </form>
+    <div id="table-area">
+        <hr/>
+        <div id="table-result"></div>
     </div>
-    <hr>
-    <footer><a target="_blank" href="https://www.zabbix.com/documentation/current/manual/api">zabbix api manual</footer>
 </body>
-<script src="./es6-promise.auto.min.js"></script>
-<script src="./api.js"></script>
+<script src="./js/api_const.js"></script>
+<script src="./js/api.js"></script>
+<script src="./js/exec.js"></script>
+<script src="./js/table.js"></script>
 <script>
+    "use strict";
     /*
+
+        element
+
+     */
+    var $menu_exec = document.getElementById("menu-exec");
+    var $menu_table = document.getElementById("menu-table");
+    var $url = document.getElementById('url');
+    var $user = document.getElementById('user');
+    var $password = document.getElementById('password');
+    var $method = document.getElementById('method');
+    var $params = document.getElementById('params');
+    var $exec = document.getElementById('exec');
+    var $request = document.getElementById('request');
+    var $response = document.getElementById('response');
+    var $table_result = document.getElementById('table-result');
+    var $execs = [document.getElementById('exec-area')];
+    var $tables = [document.getElementById('table-buttons'), document.getElementById('table-area')];
+
+    /*
+
         default input
-    */
-    document.getElementById('url').value = "http://127.0.0.1/api_jsonrpc.php";
-    document.getElementById('user').value = "Admin";
-    document.getElementById('password').value = "zabbix";
-    document.getElementById('method').value = "template.get";
-    document.getElementById('params').value = JSON.stringify({
+
+     */
+    $url.value = "http://127.0.0.1/api_jsonrpc.php";
+    $user.value = "Admin";
+    $password.value = "zabbix";
+    $method.value = "template.get";
+    $params.value = JSON.stringify({
         "output": "extend",
         "filter": {
             "host": [
@@ -51,38 +131,74 @@
             ]
         }
     });
+
     /*
-        click Event
-    */
-    document.getElementById('get').addEventListener("click", function () {
 
-        //  input values
-        let url = document.getElementById('url').value;
-        let user = document.getElementById('user').value;
-        let password = document.getElementById('password').value;
-        var method = document.getElementById('method').value;
-        var params = JSON.parse(document.getElementById('params').value);
+        utilities
 
-        //  view request
-        document.getElementById('request').value = JSON.stringify({
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-            "id": "*",
-            "auth": "********"
-        });
-        var $response = document.getElementById('response');
-        $response.value = "..............";
+     */
+    function show ($elem) {
+        $elem.style.display = "block";
+    }
+    function hide ($elem) {
+        $elem.style.display = "none";
+    }
 
-        // get ZabbixAPI result JSON
-        getZabbixAPI(url, user, password, method, params)
-            .then(function (response) {
-                $response.value = JSON.stringify(response, null, '\t');
-            })
-            .catch(function (err) {
-                $response.value = JSON.stringify(err, null, '\t');
-            });
+    /*
 
+        event
+
+     */
+    /*
+        menu
+     */
+    $menu_exec.addEventListener("click", function () {
+        $menu_exec.classList.add("primary");
+        $execs.forEach(show);
+        $menu_table.classList.remove("primary");
+        $tables.forEach(hide);
     }, false);
+    $menu_exec.click(); //  default
+
+    $menu_table.addEventListener("click", function () {
+        $menu_table.classList.add("primary");
+        $tables.forEach(show);
+        $menu_exec.classList.remove("primary");
+        $execs.forEach(hide);
+    }, false);
+
+    /*
+        exec
+     */
+    $exec.addEventListener("click", function () {
+        exec.requestAPI($url.value, $user.value, $password.value, $method.value, JSON.parse($params.value), $request, $response);
+    }, false);
+
+    /*
+        table
+     */
+    /*
+        table matrix
+     */
+    /* hosts of templates Matrix */
+    document.getElementById("hosts_of_templates_matrix").addEventListener("click", function () {
+        hostsOfTemplates.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+
+    /* monitoring matrix */
+    document.getElementById("monitoring_matrix").addEventListener("click", function () {
+        monitoringMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+
+    /* hosts of groups matrix */
+    document.getElementById("hosts_of_groups_matrix").addEventListener("click", function () {
+        hostsOfGroupsMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+
+    /* templates of groups matrix */
+    document.getElementById("templates_of_groups_matrix").addEventListener("click", function () {
+        templatesOfGroupsMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+    
 </script>
 </html>

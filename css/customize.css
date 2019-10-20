@@ -1,0 +1,42 @@
+a { text-decoration: none; }
+a:link, a:visited, a:active, button:focus { color: #eee8d5; }
+a:hover, button:hover { color: #fdd6b6; }
+header, button {
+    color: #eee8d5;
+    background-color: #586e75;
+}
+button { border: none; }
+header .menu {
+    text-align: center;
+    border-radius: 4px 4px 0 0;
+    cursor: default;
+}
+header .menu:hover { color: #fdd6b6; }
+header .menu.primary {
+    color: #586e75;
+    background-color: #fff;
+}
+header .menu.primary:hover { color: #586e75; }
+
+fieldset.container {
+    margin-top: 1em; 
+}
+textarea:read-only {
+    color: #586e75;
+    background-color: #eee8d5; 
+}
+
+table {
+    border-collapse: collapse; 
+    /* table-layout: fixed; */
+}
+th {
+    vertical-align: bottom;
+    width: 1em;
+}
+th > div {
+
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+}
+tr:nth-child(even) { background-color: #dfffff; }

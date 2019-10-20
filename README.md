@@ -4,7 +4,7 @@ Get Zabbix API result from web browser.
 
 ## Supported web browser
 
-* IE11
+* **not IE support**
 * Safari
 * Chrome
 
