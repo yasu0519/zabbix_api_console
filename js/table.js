@@ -265,6 +265,7 @@ viewLists(
     "trigger.get",
     {
         "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "templateid", "status"],
+        "expandExpression": true,
         "selectHosts": ["hostid"]
     },
     function (triggers) {
@@ -273,6 +274,8 @@ viewLists(
                 'triggerid': t.triggerid,
                 'name': t.description,
                 'severity': TRIGGER_SEVERITY[Number(t.priority)],
+                //'problem expression': t.expression.replace(/\{.*?\:/g, '{'),
+                //'recovery expression': t.recovery_expression.replace(/\{.*?\:/g, '{'),
                 'problem expression': t.expression,
                 'recovery expression': t.recovery_expression,
                 'hostid': joinArray(t.hosts, "hostid"),
