@@ -68,6 +68,7 @@
                 <button id="templates">templates</button>
                 <button id="items">items</button>
                 <button id="triggers">triggers</button>
+                <button id="macros">macros</button>
             </div>
             <div cass="row">
                 <button id="items_of_template">items of template</button>
@@ -80,6 +81,8 @@
                 <button id="monitoring_matrix">monitoring matrix</button>
                 <button id="hosts_of_groups_matrix">hosts of groups matrix</button>
                 <button id="templates_of_groups_matrix">templates of groups matrix</button>
+                <button id="hosts_of_macros_matrix">hosts of macros matrix</button>
+                <button id="templates_of_macros_matrix">templates of macros matrix</button>
             </div>
         </fieldset>
     </form>
@@ -182,7 +185,7 @@
      */
     /* hosts of templates Matrix */
     document.getElementById("hosts_of_templates_matrix").addEventListener("click", function () {
-        hostsOfTemplates.requestAPI($url.value, $user.value, $password.value, $table_result);
+        hostsOfTemplatesMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
     }, false);
 
     /* monitoring matrix */
@@ -199,6 +202,16 @@
     document.getElementById("templates_of_groups_matrix").addEventListener("click", function () {
         templatesOfGroupsMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
     }, false);
-    
+
+    /* hosts of macros matrix */
+    document.getElementById("hosts_of_macros_matrix").addEventListener("click", function () {
+        hostsOfMacrosMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+
+    /* templates of macros matrix */
+    document.getElementById("templates_of_macros_matrix").addEventListener("click", function () {
+        templatesOfMacrosMatrix.requestAPI($url.value, $user.value, $password.value, $table_result);
+    }, false);
+
 </script>
 </html>

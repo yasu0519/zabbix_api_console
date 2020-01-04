@@ -88,7 +88,11 @@ function markupTable(arr) {
         Object.keys(r).forEach(function (v) {
             if (v == "matrix_items") {
                 Object.keys(r.matrix_items).forEach(function (m) {
-                    $tr.appendChild($('td', (r.matrix_items[m]) ? "●" : ""));
+                    if (typeof r.matrix_items[m] === 'boolean') {
+                        $tr.appendChild($('td', (r.matrix_items[m]) ? "●" : ""));
+                    } else {
+                        $tr.appendChild($('td', r.matrix_items[m]));
+                    }
                 });
             }
             else {
@@ -288,6 +292,32 @@ viewLists(
 
 /*
 
+    macros
+
+ */
+viewLists(
+    "macros",
+    "usermacro.get",
+    {
+        "output": ["hostmacroid", "macro", "value"],
+        "selectHosts":["hostid"],
+        "selectTemplates":["templateid"]
+    },
+    function (macros) {
+        return macros.map(function (m) {
+            return {
+                'hostmacroid': m.hostmacroid,
+                'macro': m.macro,
+                'value': m.value,
+                'hostid': joinArray(m.hosts, "hostid"),
+                'templateid': joinArray(m.templates, "templateid")
+            };
+        });
+    }
+);
+
+/*
+
     items of template
 
  */
@@ -427,7 +457,7 @@ viewLists(
    view hosts Of templates matrix
 
 */
-var hostsOfTemplates = {
+var hostsOfTemplatesMatrix = {
     requestAPI: function(url, user, password, $output) {
         var method = "template.get";
         var params = { 
@@ -445,7 +475,7 @@ var hostsOfTemplates = {
             return zabbixAPI.request(url, method, params, response.auth);
         })
         .then(function (response) {
-            hostsOfTemplates.viewTable("hosts Of templates matrix", hostsOfTemplates.makeTable(response.result), $output);    
+            hostsOfTemplatesMatrix.viewTable("hosts Of templates matrix", hostsOfTemplatesMatrix.makeTable(response.result), $output);    
             return zabbixAPI.logout($url.value, response.auth);
         })
         .catch(function (err) {
@@ -453,7 +483,7 @@ var hostsOfTemplates = {
         });
     },
     
-    makeTable:  function(templates) {
+    makeTable: function(templates) {
         var hosts = [];
         var templateids = [];
         var template_host = [];
@@ -568,7 +598,7 @@ var monitoringMatrix = {
         });
     },
     
-    makeTable:  function(templates, items) {
+    makeTable: function(templates, items) {
         var hosts = [];
         var templateids = [];
         var template_host = [];
@@ -698,7 +728,7 @@ var hostsOfGroupsMatrix = {
         });
     },
     
-    makeTable:  function(hostgroups) {
+    makeTable: function(hostgroups) {
         var hosts = [];
         var groupids = [];
         var group_host = [];
@@ -799,7 +829,7 @@ var templatesOfGroupsMatrix = {
         });
     },
     
-    makeTable:  function(hostgroups) {
+    makeTable: function(hostgroups) {
         var templates = [];
         var groupids = [];
         var group_template = [];
@@ -866,3 +896,190 @@ var templatesOfGroupsMatrix = {
     }
 };
 
+/*
+
+   view hosts of macros matrix
+
+*/
+var hostsOfMacrosMatrix = {
+    requestAPI: function(url, user, password, $output) {
+        //  API
+        var macros = {
+            method: "usermacro.get",
+            params:     {
+                "output": ["hostmacroid", "macro", "value"],
+                "selectHosts": ["hostid", "host", "description", "status"]
+            }
+        };
+
+        // clear
+        $output.innerHTML = "<h3>" + ".........." + "</h3>";
+
+        // get ZabbixAPI result JSON
+        zabbixAPI.login(url, user, password)
+        .then(function (response) {
+            return zabbixAPI.request(url, macros.method, macros.params, response.auth);
+        })
+        .then(function (response) {
+            hostsOfMacrosMatrix.viewTable("hosts of macros matrix", hostsOfMacrosMatrix.makeTable(response.result), $output);    
+            return zabbixAPI.logout($url.value, response.auth);
+        })
+        .catch(function (err) {
+            $output = $output + "\n" + JSON.stringify(err, null, '\t');
+        });
+    },
+
+    makeTable: function(macros) {
+        var hosts = [];
+        var macroids = [];
+        var macro_host = [];
+
+        //  set array
+        macros.forEach(function(m){
+            //  include hosts
+            m.hosts.forEach(function(h){
+                //  add hosts
+                hosts[hosts.length] = h.host;
+                //  add macroids
+                macroids[macroids.length] = m.hostmacroid;
+                //  add macro_host
+                macro_host[macro_host.length] = { "macroid": m.hostmacroid, "host": h.host };
+            });
+        });
+
+        //  sort uniq
+        hosts = sortUniq(hosts);
+        macroids = sortUniq(macroids);
+
+        //  make matrix
+        var matrix_items = {}; 
+        hosts.forEach(function(h){
+            matrix_items[h] = "";
+        });
+
+        var arr = [];
+        macroids.forEach(function(id){
+            var o = macros.find(function(m){
+                return (m.hostmacroid == id);
+            });
+            
+            var matrix = { "macroid": id, "macro": o.macro, "matrix_items": deepClone(matrix_items) };
+            macro_host.filter(function(m){ return (m.macroid == id); }).forEach(function(m){
+                matrix.matrix_items[m.host] = o.value;
+            });
+            arr[arr.length] = deepClone(matrix);
+        });
+
+        //  sort macro name
+        arr.sort(function(a,b){
+            if (a.macro < b.macro) {
+                return -1;
+            }
+            if (a.macro > b.macro) {
+                return 1;
+            }
+            return 0;
+        });
+
+        return arr;
+    },
+
+    viewTable:  function (tableName, table, $output) {
+        $output.innerHTML = "<h3>" + tableName + "</h3>";
+        $output.appendChild(markupTable(table));
+    }
+};
+
+/*
+
+   view templates of macros matrix
+
+*/
+var templatesOfMacrosMatrix = {
+    requestAPI: function(url, user, password, $output) {
+        //  API
+        var macros = {
+            method: "usermacro.get",
+            params:     {
+                "output": ["hostmacroid", "macro", "value"],
+                "selectTemplates":["templateid", "host", "name"]
+            }
+        };
+
+        // clear
+        $output.innerHTML = "<h3>" + ".........." + "</h3>";
+
+        // get ZabbixAPI result JSON
+        zabbixAPI.login(url, user, password)
+        .then(function (response) {
+            return zabbixAPI.request(url, macros.method, macros.params, response.auth);
+        })
+        .then(function (response) {
+            templatesOfMacrosMatrix.viewTable("templates of macros matrix", templatesOfMacrosMatrix.makeTable(response.result), $output);    
+            return zabbixAPI.logout($url.value, response.auth);
+        })
+        .catch(function (err) {
+            $output = $output + "\n" + JSON.stringify(err, null, '\t');
+        });
+    },
+
+    makeTable: function(macros) {
+        var templates = [];
+        var macroids = [];
+        var macro_template = [];
+
+        //  set array
+        macros.forEach(function(m){
+            //  include templates
+            m.templates.forEach(function(t){
+                //  add templates
+                templates[templates.length] = t.host;
+                //  add macroids
+                macroids[macroids.length] = m.hostmacroid;
+                //  add macro_template
+                macro_template[macro_template.length] = { "macroid": m.hostmacroid, "template": t.host };
+            });
+        });
+
+        //  sort uniq
+        templates = sortUniq(templates);
+        macroids = sortUniq(macroids);
+
+        //  make matrix
+        var matrix_items = {}; 
+        templates.forEach(function(t){
+            matrix_items[t] = "";
+        });
+
+        var arr = [];
+        macroids.forEach(function(id){
+            var o = macros.find(function(m){
+                return (m.hostmacroid == id);
+            });
+            
+            var matrix = { "macroid": id, "macro": o.macro, "matrix_items": deepClone(matrix_items) };
+            macro_template.filter(function(m){ return (m.macroid == id); }).forEach(function(m){
+                matrix.matrix_items[m.template] = o.value;
+            });
+            arr[arr.length] = deepClone(matrix);
+        });
+
+        //  sort macro name
+        arr.sort(function(a,b){
+            if (a.macro < b.macro) {
+                return -1;
+            }
+            if (a.macro > b.macro) {
+                return 1;
+            }
+            return 0;
+        });
+
+        return arr;
+    },
+
+    viewTable:  function (tableName, table, $output) {
+        $output.innerHTML = "<h3>" + tableName + "</h3>";
+        $output.appendChild(markupTable(table));
+    }
+};
