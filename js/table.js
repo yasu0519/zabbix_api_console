@@ -47,6 +47,30 @@ function joinArray(arr, key) {
     return arr.map(function (a) { return a[key]; }).join(', ');
 }
 /*
+    timestamp to string
+ */
+function timestampToString(timestamp) {
+    //  zero padding
+    let pad = function(num){
+        return ('0' + num).slice(-2);
+    };
+    var t = parseInt(timestamp, 10);
+    // NaN or 0以下なら空文字を返却
+    if ( Number.isNaN(t) || (t <= 0) ) {
+        return "";
+    }
+    //  timestamp は unixtime、Dateはミリ秒なので1000倍が必要
+    var d = new Date(t * 1000);
+    var yyyy = d.getFullYear();
+    var mm = pad(d.getMonth()+1);
+    var dd = pad(d.getDate());
+    var hh = pad(d.getHours());
+    var min = pad(d.getMinutes());
+    var ss = pad(d.getSeconds());
+    return [yyyy,mm,dd].join('/') + ' ' + [hh,min,ss].join(':');
+}
+
+/*
     Deep Clone Object
  */
 function deepClone(obj) {
@@ -237,7 +261,7 @@ viewLists(
     "items",
     "item.get",
     {
-        "output": [ "itemid", "name", "type", "key_", "delay", "history", "trends", "hostid", "templateid", "status" ],
+        "output": [ "itemid", "name", "type", "key_", "delay", "history", "trends", "hostid", "templateid", "status", "state", "lastclock", "lastvalue" ],
         "selectApplications": ["applicationid", "name"]
     },
     function (items) {
@@ -253,7 +277,10 @@ viewLists(
                 'application': joinArray(i.applications, "name"),
                 'hostid': i.hostid,
                 'templateid': i.templateid,
-                'status': STATUS[Number(i.status)]
+                'status': STATUS[Number(i.status)],
+                'state': ITEM_STATE[Number(i.state)],
+                'lastclock': timestampToString(i.lastclock),
+                'lastvalue': i.lastvalue
             };
         });
     }
@@ -268,7 +295,7 @@ viewLists(
     "triggers",
     "trigger.get",
     {
-        "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "templateid", "status"],
+        "output": ["triggerid", "description", "priority", "expression", "recovery_expression", "templateid", "state", "status"],
         "expandExpression": true,
         "selectHosts": ["hostid"]
     },
@@ -284,6 +311,7 @@ viewLists(
                 'recovery expression': t.recovery_expression,
                 'hostid': joinArray(t.hosts, "hostid"),
                 'templateid': t.templateid,
+                'state': TRIGGER_STATE[Number(t.state)],
                 'status': STATUS[Number(t.status)]
             };
         });
@@ -362,7 +390,7 @@ viewLists(
     {
         "output": ["hostid", "host"],
         "with_items": true,
-        "selectItems": ["itemid", "name", "type", "key_", "delay", "history", "trends", "status"]
+        "selectItems": ["itemid", "name", "type", "key_", "delay", "history", "trends", "status", "state", "lastclock", "lastvalue"]
     },
     function (hosts) {
         var arr = [];
@@ -377,7 +405,10 @@ viewLists(
                     'interval': i.delay,
                     'history': i.history,
                     'trends': i.trends,
-                    'status': STATUS[Number(i.status)]
+                    'status': STATUS[Number(i.status)],
+                    'state': ITEM_STATE[Number(i.state)],
+                    'lastclock': timestampToString(i.lastclock),
+                    'lastvalue': i.lastvalue
                 };
             });
             arr = arr.concat(a);
@@ -430,7 +461,7 @@ viewLists(
     {
         "output": ["hostid", "host"],
         "with_triggers": true,
-        "selectTriggers": ["triggerid", "description", "priority", "expression", "recovery_expression", "status"]
+        "selectTriggers": ["triggerid", "description", "priority", "expression", "recovery_expression", "state", "status"]
     },
     function (hosts) {
         var arr = [];
@@ -443,6 +474,7 @@ viewLists(
                     'severity': TRIGGER_SEVERITY[Number(t.priority)],
                     'problem expression': t.expression,
                     'recovery expression': t.recovery_expression,
+                    'state': TRIGGER_STATE[Number(t.state)],
                     'status': STATUS[Number(t.status)]
                 };
             });

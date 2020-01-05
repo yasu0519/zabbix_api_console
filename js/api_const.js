@@ -17,14 +17,14 @@ const STATUS = ["Enabled", "Disabled"];
 /* 
     group
  */
-var GROUP_FLAGS = [
+const GROUP_FLAGS = [
     "plain host group",
     "",
     "",
     "",
     "discovered host group"
 ];
-var GROUP_INTERNAL = [
+const GROUP_INTERNAL = [
     "not internal",
     "internal"
 ];
@@ -32,32 +32,33 @@ var GROUP_INTERNAL = [
 /* 
     item
  */
-var ITEM_TYPE = [
-        "Zabbix agent",
-        "SNMPv1 agent",
-        "Zabbix trapper",
-        "simple check",
-        "SNMPv2 agent",
-        "Zabbix internal",
-        "SNMPv3 agent",
-        "Zabbix agent (active)",
-        "Zabbix aggregate",
-        "web item",
-        "external check",
-        "database monitor",
-        "IPMI agent",
-        "SSH agent",
-        "TELNET agent",
-        "calculated",
-        "JMX agent",
-        "SNMP trap",
-        "Dependent item"
+const ITEM_TYPE = [
+    "Zabbix agent",
+    "SNMPv1 agent",
+    "Zabbix trapper",
+    "simple check",
+    "SNMPv2 agent",
+    "Zabbix internal",
+    "SNMPv3 agent",
+    "Zabbix agent (active)",
+    "Zabbix aggregate",
+    "web item",
+    "external check",
+    "database monitor",
+    "IPMI agent",
+    "SSH agent",
+    "TELNET agent",
+    "calculated",
+    "JMX agent",
+    "SNMP trap",
+    "Dependent item"
 ];
+const ITEM_STATE = ["normal", "not supported"];
 
 /* 
     trigger
  */
-var TRIGGER_SEVERITY = [    /* priority */
+const TRIGGER_SEVERITY = [    /* priority */
     "default",
     "information",
     "warning",
@@ -65,3 +66,4 @@ var TRIGGER_SEVERITY = [    /* priority */
     "high",
     "disaster"
 ];
+const TRIGGER_STATE = ["up to date", "unknown"];
